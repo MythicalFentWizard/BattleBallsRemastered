@@ -131,5 +131,5 @@ real time and are worth knowing if you work on this:
 
 ## Credits
 
-Built with [Claude Code](https://claude.com/claude-code). Reverse engineering done with
+Built by hand. Reverse engineering done with claude(for some parts). polished using a local kimi model +
 Il2CppDumper and Capstone. ik i used ai. im not ashamed of it. i would have even sold my soul to stick it to those motherfuckers who killed the game and Fucked it up. i hope they die in a fire. i hate them. I FUCKING HATE THEM.
