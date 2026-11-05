@@ -1,0 +1,194 @@
+<Window x:Class="Launcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:Launcher"
+        Title="BattleBit Revival" Width="520" Height="640"
+        MinWidth="460" MinHeight="520"
+        Background="{StaticResource Bg}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="B2V"/>
+    <l:ResourceKeyToBrush x:Key="KeyToBrush"/>
+  </Window.Resources>
+
+  <Grid Margin="18,14,18,16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>   <!-- header -->
+      <RowDefinition Height="*"/>      <!-- cards -->
+      <RowDefinition Height="Auto"/>   <!-- actions -->
+      <RowDefinition Height="Auto"/>   <!-- log -->
+    </Grid.RowDefinitions>
+
+    <!-- ==================== header ==================== -->
+    <Grid Grid.Row="0" Margin="0,0,0,16">
+      <StackPanel>
+        <TextBlock Text="BattleBit Revival" Foreground="{StaticResource Text}"
+                   FontFamily="{StaticResource UiFont}" FontSize="19" FontWeight="SemiBold"/>
+        <TextBlock x:Name="Subtitle" Foreground="{StaticResource Faint}"
+                   FontFamily="{StaticResource UiFont}" FontSize="11.5" Margin="0,1,0,0"/>
+      </StackPanel>
+      <!-- Status pill, right-aligned: the one thing worth seeing without reading. -->
+      <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+              Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+              BorderThickness="1" CornerRadius="11" Padding="10,4,12,4">
+        <StackPanel Orientation="Horizontal">
+          <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                   Fill="{Binding StatusKey, Converter={StaticResource KeyToBrush}}"/>
+          <TextBlock Text="{Binding StatusText}" Margin="7,0,0,0"
+                     Foreground="{StaticResource Muted}"
+                     FontFamily="{StaticResource UiFont}" FontSize="11.5"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ==================== cards ==================== -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+      <StackPanel>
+
+        <TextBlock Text="ACCOUNT" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="112"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Player name" Style="{StaticResource FieldLabel}"/>
+            <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource Field}"
+                       Text="{Binding PlayerName, UpdateSourceTrigger=PropertyChanged}"
+                       IsEnabled="{Binding CanEditFields}" MaxLength="20"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Password" Style="{StaticResource FieldLabel}"
+                       Margin="0,10,12,0"/>
+            <l:SecretBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                         Password="{Binding AccountPassword, Mode=TwoWay}"
+                         IsEnabled="{Binding CanEditFields}"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Hint}" Margin="0,8,0,0"
+                       Text="At least 8 characters with a number. Per cluster - the first login creates the account."/>
+          </Grid>
+        </Border>
+
+        <TextBlock Text="CLUSTER" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="112"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Address" Style="{StaticResource FieldLabel}"/>
+              <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource Field}"
+                         Text="{Binding MasterHost, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding CanEditHost}"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Cluster password" Style="{StaticResource FieldLabel}"
+                         Margin="0,10,12,0"/>
+              <l:SecretBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                           Password="{Binding ClusterPassword, Mode=TwoWay}"
+                           IsEnabled="{Binding CanEditFields}"/>
+            </Grid>
+
+            <CheckBox Style="{StaticResource Check}" Margin="0,12,0,0"
+                      Content="Host the master on this PC"
+                      IsChecked="{Binding HostMaster}"
+                      IsEnabled="{Binding CanEditFields}"
+                      Visibility="{Binding IsHostCapable, Converter={StaticResource B2V}}"/>
+            <CheckBox Style="{StaticResource Check}"
+                      Content="Enable anti-cheat guard"
+                      IsChecked="{Binding EnableGuard}"
+                      IsEnabled="{Binding CanEditFields}"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="26,2,0,0"
+                       Text="Reports cheat software running on this PC to the master server."/>
+          </StackPanel>
+        </Border>
+
+        <!-- Only shown while hosting: a player joining someone else's cluster has no
+             use for a server name or a console. -->
+        <StackPanel Visibility="{Binding HostFieldsVisible, Converter={StaticResource B2V}}">
+          <TextBlock Text="HOSTING" Style="{StaticResource SectionHeader}"/>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="112"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Cluster name" Style="{StaticResource FieldLabel}"/>
+                <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource Field}"
+                           Text="{Binding ClusterName, UpdateSourceTrigger=PropertyChanged}"
+                           IsEnabled="{Binding CanEditFields}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Server name" Style="{StaticResource FieldLabel}"
+                           Margin="0,10,12,0"/>
+                <TextBox   Grid.Row="1" Grid.Column="1" Style="{StaticResource Field}" Margin="0,10,0,0"
+                           Text="{Binding ServerName, UpdateSourceTrigger=PropertyChanged}"/>
+              </Grid>
+
+              <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="Launch Server" Style="{StaticResource Secondary}"
+                        Command="{Binding LaunchServerCommand}"/>
+                <TextBox Grid.Column="1" Style="{StaticResource Field}" Margin="8,0,8,0"
+                         Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}"
+                         KeyDown="OnCommandKeyDown"/>
+                <Button Grid.Column="2" Content="Send" Style="{StaticResource Secondary}"
+                        Command="{Binding SendCommandCommand}"/>
+              </Grid>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                         Text="forcestart &#183; join bot a 5 &#183; remove bot &#183; set fps 60 &#183; kick all. Full list in docs/COMMANDS.md."/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ==================== actions ==================== -->
+    <Grid Grid.Row="2" Margin="0,4,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Button Grid.Column="0" Content="{Binding StartLabel}" Style="{StaticResource Primary}"
+              Command="{Binding ToggleCommand}" MinWidth="104"/>
+      <Button Grid.Column="1" Content="Launch Game" Style="{StaticResource Secondary}"
+              Command="{Binding LaunchClientCommand}" Margin="9,0,0,0"/>
+      <ToggleButton Grid.Column="3" x:Name="LogToggle" Style="{StaticResource SecondaryToggle}"
+                    Content="Log" VerticalAlignment="Center"/>
+    </Grid>
+
+    <!-- ==================== log ==================== -->
+    <!-- Closed by default. It is the first thing to ask for when a join fails and the
+         last thing a working launcher needs on screen. -->
+    <TextBox Grid.Row="3" x:Name="LogView" Style="{StaticResource LogBox}"
+             Height="190" Margin="0,14,0,0"
+             Text="{Binding LogText, Mode=OneWay}"
+             Visibility="{Binding IsChecked, ElementName=LogToggle, Converter={StaticResource B2V}}"/>
+  </Grid>
+</Window>

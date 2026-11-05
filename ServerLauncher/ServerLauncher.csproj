@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>RevivalServerLauncher</AssemblyName>
+    <RootNamespace>ServerLauncher</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MasterServer\MasterServer.csproj" />
+  </ItemGroup>
+
+  <!-- The palette and the password field are shared with the player launcher rather
+       than copied. Linked in as source, so both executables keep their own compiled
+       copy and neither grows a dependency on the other. -->
+  <ItemGroup>
+    <Page Include="..\Launcher\Theme.xaml" Link="Theme.xaml" />
+    <Page Include="..\Launcher\SecretBox.xaml" Link="SecretBox.xaml" />
+    <Compile Include="..\Launcher\SecretBox.xaml.cs" Link="SecretBox.xaml.cs" />
+  </ItemGroup>
+</Project>

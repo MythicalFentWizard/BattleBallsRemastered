@@ -1,0 +1,303 @@
+<Window x:Class="ServerLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:ServerLauncher"
+        xmlns:l="clr-namespace:Launcher"
+        Title="BattleBit Revival Server" Width="640" Height="800"
+        MinWidth="560" MinHeight="560"
+        Background="{StaticResource Bg}"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="B2V"/>
+    <s:ResourceKeyToBrush x:Key="KeyToBrush"/>
+  </Window.Resources>
+
+  <Grid Margin="18,14,18,16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- ==================== header ==================== -->
+    <Grid Grid.Row="0" Margin="0,0,0,16">
+      <StackPanel>
+        <TextBlock Text="BattleBit Revival Server" Foreground="{StaticResource Text}"
+                   FontFamily="{StaticResource UiFont}" FontSize="19" FontWeight="SemiBold"/>
+        <TextBlock Text="Master and game server, both from here" Foreground="{StaticResource Faint}"
+                   FontFamily="{StaticResource UiFont}" FontSize="11.5" Margin="0,1,0,0"/>
+      </StackPanel>
+      <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+              Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+              BorderThickness="1" CornerRadius="11" Padding="10,4,12,4">
+        <StackPanel Orientation="Horizontal">
+          <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                   Fill="{Binding StatusKey, Converter={StaticResource KeyToBrush}}"/>
+          <TextBlock Text="{Binding StatusText}" Margin="7,0,0,0"
+                     Foreground="{StaticResource Muted}"
+                     FontFamily="{StaticResource UiFont}" FontSize="11.5"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ==================== settings ==================== -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
+      <StackPanel>
+
+        <TextBlock Text="CLUSTER" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="128"/><ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Cluster name" Style="{StaticResource FieldLabel}"/>
+              <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource Field}"
+                         Text="{Binding ClusterName, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Password" Style="{StaticResource FieldLabel}" Margin="0,10,12,0"/>
+              <l:SecretBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                           Password="{Binding ClusterPassword, Mode=TwoWay}"
+                           IsEnabled="{Binding CanEdit}"/>
+            </Grid>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,7,0,0"
+                       Text="Leave the password blank for an open cluster anyone can join."/>
+            <CheckBox Style="{StaticResource Check}" Margin="0,11,0,0"
+                      Content="Players must log in with an account"
+                      IsChecked="{Binding RequireAccounts}" IsEnabled="{Binding CanEdit}"/>
+            <CheckBox Style="{StaticResource Check}"
+                      Content="Run a game server here too (off = master only, for a Linux VPS)"
+                      IsChecked="{Binding RunGameServer}" IsEnabled="{Binding CanEdit}"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="GAME SERVER" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel IsEnabled="{Binding RunGameServer}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="128"/><ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Server name" Style="{StaticResource FieldLabel}"/>
+              <TextBox   Grid.Row="0" Grid.Column="1" Style="{StaticResource Field}"
+                         Text="{Binding ServerName, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Size" Style="{StaticResource FieldLabel}" Margin="0,10,12,0"/>
+              <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                         Style="{StaticResource Picker}" ItemContainerStyle="{StaticResource PickerItem}"
+                         ItemsSource="{Binding Sizes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                         SelectedValue="{Binding Size, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Starts on" Style="{StaticResource FieldLabel}" Margin="0,10,12,0"/>
+              <Grid Grid.Row="2" Grid.Column="1" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <ComboBox Grid.Column="0" Style="{StaticResource Picker}" ItemContainerStyle="{StaticResource PickerItem}"
+                          ItemsSource="{Binding FirstMapOptions}" SelectedItem="{Binding FirstMap, Mode=TwoWay}"
+                          IsEnabled="{Binding CanEdit}" Margin="0,0,4,0"/>
+                <ComboBox Grid.Column="1" Style="{StaticResource Picker}" ItemContainerStyle="{StaticResource PickerItem}"
+                          ItemsSource="{Binding FirstModeOptions}" SelectedItem="{Binding FirstMode, Mode=TwoWay}"
+                          IsEnabled="{Binding CanEdit}" Margin="4,0,0,0"/>
+              </Grid>
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Game folder" Style="{StaticResource FieldLabel}" Margin="0,10,12,0"/>
+              <TextBox   Grid.Row="3" Grid.Column="1" Style="{StaticResource Field}" Margin="0,10,0,0"
+                         Text="{Binding GamePath, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding CanEdit}"
+                         ToolTip="Leave blank if this folder sits inside your BattleBit install."/>
+            </Grid>
+
+            <Grid Margin="0,14,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="124"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Tick rate" Style="{StaticResource FieldLabel}"/>
+              <Slider    Grid.Row="0" Grid.Column="1" Style="{StaticResource Dial}" Minimum="30" Maximum="240"
+                         TickFrequency="10" IsSnapToTickEnabled="True"
+                         Value="{Binding Hz, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Hz, StringFormat={}{0} Hz}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,0,0,0"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Max ping" Style="{StaticResource FieldLabel}" Margin="0,8,12,0"/>
+              <Slider    Grid.Row="1" Grid.Column="1" Style="{StaticResource Dial}" Minimum="50" Maximum="999"
+                         TickFrequency="10" IsSnapToTickEnabled="True" Margin="0,8,0,0"
+                         Value="{Binding MaxPing, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MaxPing, StringFormat={}{0} ms}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,8,0,0"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Bots" Style="{StaticResource FieldLabel}" Margin="0,8,12,0"/>
+              <Slider    Grid.Row="2" Grid.Column="1" Style="{StaticResource Dial}" Minimum="0" Maximum="20"
+                         TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,8,0,0"
+                         Value="{Binding Bots, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding BotsLabel}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,8,0,0"/>
+            </Grid>
+
+            <CheckBox Style="{StaticResource Check}" Margin="0,12,0,0"
+                      Content="Start the round without waiting for players"
+                      IsChecked="{Binding AutoStart}" IsEnabled="{Binding CanEdit}"/>
+            <CheckBox Style="{StaticResource Check}"
+                      Content="Let players vote on the next map"
+                      IsChecked="{Binding MapVote}" IsEnabled="{Binding CanEdit}"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="26,2,0,0"
+                       Text="With voting on, players choose and your rotation below is ignored."/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="ROTATION" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel IsEnabled="{Binding RunGameServer}">
+            <TextBlock Text="Maps" Style="{StaticResource FieldLabel}" Margin="0,0,0,7"/>
+            <ItemsControl ItemsSource="{Binding Maps}" IsEnabled="{Binding CanEdit}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <CheckBox Style="{StaticResource Check}" Width="152" Margin="0,3,6,3"
+                            Content="{Binding Name}" IsChecked="{Binding On, Mode=TwoWay}"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Game modes" Style="{StaticResource FieldLabel}" Margin="0,12,0,7"/>
+            <ItemsControl ItemsSource="{Binding Modes}" IsEnabled="{Binding CanEdit}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <CheckBox Style="{StaticResource Check}" Width="152" Margin="0,3,6,3"
+                            Content="{Binding Name}" IsChecked="{Binding On, Mode=TwoWay}"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                       Text="Tick none to leave the game's own rotation alone. The two lists advance separately, one step per round, so counts that share a factor pin each map to one mode - 10 maps with 3 modes is fine, 6 with 3 is not."/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="PROGRESSION" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="124"/>
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="XP rate" Style="{StaticResource FieldLabel}"/>
+              <Slider    Grid.Row="0" Grid.Column="1" Style="{StaticResource Dial}" Minimum="0.5" Maximum="10"
+                         TickFrequency="0.5" IsSnapToTickEnabled="True"
+                         Value="{Binding Xp, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding XpLabel}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,0,0,0"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Score rate" Style="{StaticResource FieldLabel}" Margin="0,8,12,0"/>
+              <Slider    Grid.Row="1" Grid.Column="1" Style="{StaticResource Dial}" Minimum="0.5" Maximum="10"
+                         TickFrequency="0.5" IsSnapToTickEnabled="True" Margin="0,8,0,0"
+                         Value="{Binding Score, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ScoreLabel}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,8,0,0"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Starting rank" Style="{StaticResource FieldLabel}" Margin="0,8,12,0"/>
+              <Slider    Grid.Row="2" Grid.Column="1" Style="{StaticResource Dial}" Minimum="0" Maximum="200"
+                         TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,8,0,0"
+                         Value="{Binding StartRank, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding StartRank}"
+                         Style="{StaticResource FieldLabel}" HorizontalAlignment="Right" Margin="10,8,0,0"/>
+            </Grid>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,9,0,0"
+                       Text="Rates apply to what players earn from now on, so changing them never rewrites progress anyone already has."/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="ANTI-CHEAT" Style="{StaticResource SectionHeader}"/>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <CheckBox Style="{StaticResource Check}" Content="Enable anti-cheat"
+                      IsChecked="{Binding AcEnabled}" IsEnabled="{Binding CanEdit}"/>
+            <StackPanel Margin="26,8,0,0" IsEnabled="{Binding AcEnabled}">
+              <ItemsControl ItemsSource="{Binding Detectors}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <CheckBox Style="{StaticResource Check}" Content="{Binding Name}"
+                              IsChecked="{Binding On, Mode=TwoWay}"/>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="124"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Reports to ban" Style="{StaticResource FieldLabel}"/>
+                <Slider    Grid.Column="1" Style="{StaticResource Dial}" Minimum="1" Maximum="10"
+                           TickFrequency="1" IsSnapToTickEnabled="True"
+                           Value="{Binding AcReports, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+                <TextBlock Grid.Column="2" Text="{Binding AcReports}" Style="{StaticResource FieldLabel}"
+                           HorizontalAlignment="Right" Margin="10,0,0,0"/>
+              </Grid>
+              <CheckBox Style="{StaticResource Check}" Margin="0,8,0,0"
+                        Content="Ban the machine as well as the account"
+                        IsChecked="{Binding AcHwid}" IsEnabled="{Binding CanEdit}"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource Hint}" Margin="26,8,0,0"
+                       Text="Game files modified flags anyone who ran patch_auth.ps1, which is everyone - leave it off unless you hand out a pre-patched install."/>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ==================== actions ==================== -->
+    <Grid Grid.Row="2" Margin="0,6,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Button Grid.Column="0" Content="{Binding StartLabel}" Style="{StaticResource Primary}"
+              Command="{Binding ToggleCommand}" MinWidth="124"/>
+      <Button Grid.Column="1" Content="Save" Style="{StaticResource Secondary}"
+              Command="{Binding SaveCommand}" Margin="9,0,0,0"/>
+      <ToggleButton Grid.Column="3" x:Name="LogToggle" Style="{StaticResource SecondaryToggle}"
+                    Content="Console" VerticalAlignment="Center" IsChecked="True"/>
+    </Grid>
+
+    <!-- ==================== console ==================== -->
+    <Grid Grid.Row="3" Margin="0,14,0,0"
+          Visibility="{Binding IsChecked, ElementName=LogToggle, Converter={StaticResource B2V}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="200"/><RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TextBox Grid.Row="0" x:Name="LogView" Style="{StaticResource LogBox}"
+               Text="{Binding ConsoleText, Mode=OneWay}"/>
+      <Grid Grid.Row="1" Margin="0,8,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBox Grid.Column="0" Style="{StaticResource Field}"
+                 Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}"
+                 IsEnabled="{Binding IsRunning}" KeyDown="OnCommandKeyDown"/>
+        <Button Grid.Column="1" Content="Send" Style="{StaticResource Secondary}" Margin="8,0,0,0"
+                Command="{Binding SendCommand}"/>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
