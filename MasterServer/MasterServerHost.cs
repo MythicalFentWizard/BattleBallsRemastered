@@ -134,7 +134,11 @@ public static class MasterServerHost
             foreach (var problem in props.ApplyTo(AntiCheat)) log($"  WARNING  {problem}");
             foreach (var problem in props.ApplyTo(accounts.Progression)) log($"  WARNING  {problem}");
             log($"Settings loaded from {props.FilePath}");
+            _publicAddress = props.Get("public-address").Trim();
         }
+        log(_publicAddress.Length > 0
+            ? $"Internet players join game servers on this machine at {_publicAddress}"
+            : "Players join game servers on this machine at the address they reach the master on");
         foreach (var stale in LegacyConfigFiles(Path.GetDirectoryName(Environment.ProcessPath) ?? "."))
             log($"  NOTE  {Path.GetFileName(stale)} is no longer read - its settings live in " +
                 $"server.properties now. Delete it.");
@@ -519,7 +523,7 @@ public static class MasterServerHost
         }
         else if (ctx.Request.Path.Value?.Contains("GetServerList", StringComparison.OrdinalIgnoreCase) == true)
         {
-            reply = BuildServerListReply();
+            reply = BuildServerListReply(HereFor(ctx.Connection));
         }
         else if (ctx.Request.Path.Value?.Contains("GetPingServers", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -624,7 +628,8 @@ public static class MasterServerHost
     }
 
     /// The client takes this as (DateTime, List&lt;entry&gt;).
-    static byte[] BuildServerListReply()
+    /// [here] is where this player reaches a game server running on the master's machine.
+    static byte[] BuildServerListReply(IPAddress here)
     {
         var rows = Servers.Values.ToList();
         var ms = new MemoryStream();
@@ -635,8 +640,68 @@ public static class MasterServerHost
         w.Write(DateTime.UtcNow.Ticks); // DateTime is serialised as ticks
         w.Write(rows.Count);            // entry count
         foreach (var s in rows)
-            WriteServerEntry(w, s);
+            WriteServerEntry(w, s, here);
         return ms.ToArray();
+    }
+
+    // ==================== Where players find a game server ====================
+
+    /// public-address from server.properties: an IP or a DNS name, blank when unset.
+    static string _publicAddress = "";
+    static (IPAddress? Ip, DateTime At) _publicLookup;
+    static readonly ConcurrentDictionary<string, byte> _announced = new();
+
+    /// A game server on the master's own machine registers over loopback, so its
+    /// address is 127.0.0.1 - and that sends a player on another PC to their own
+    /// machine, where the join dies with "No response". Instead each player gets an
+    /// address they can reach this machine on: loopback when they are on it, the
+    /// address their request came in on when they are on the same network (LAN, or a
+    /// VPN such as Tailscale), and public-address when they come in over the internet.
+    static IPAddress HereFor(ConnectionInfo c)
+    {
+        var remote = Plain(c.RemoteIpAddress);
+        var local = Plain(c.LocalIpAddress);
+        IPAddress here;
+        if (remote == null || IPAddress.IsLoopback(remote)) here = IPAddress.Loopback;
+        else if (!IsPrivate(remote) && PublicAddress() is { } pub) here = pub;
+        else here = local != null && !IPAddress.IsLoopback(local) &&
+                    local.AddressFamily == AddressFamily.InterNetwork ? local : IPAddress.Loopback;
+
+        if (_announced.TryAdd($"{remote}>{here}", 0))
+            _log($"  server list for {remote}: game servers on this machine are at {here}");
+        return here;
+    }
+
+    static IPAddress? Plain(IPAddress? a) => a is { IsIPv4MappedToIPv6: true } ? a.MapToIPv4() : a;
+
+    /// Addresses only reachable from the same network: RFC 1918, link-local, and the
+    /// 100.64/10 block Tailscale and carrier NAT use.
+    static bool IsPrivate(IPAddress a)
+    {
+        if (a.AddressFamily != AddressFamily.InterNetwork) return a.IsIPv6LinkLocal || a.IsIPv6UniqueLocal;
+        var b = a.GetAddressBytes();
+        return b[0] == 10 || (b[0] == 172 && b[1] is >= 16 and <= 31) || (b[0] == 192 && b[1] == 168) ||
+               (b[0] == 169 && b[1] == 254) || (b[0] == 100 && b[1] is >= 64 and <= 127);
+    }
+
+    /// public-address as an IPv4 address. A DNS name is looked up again each minute, so
+    /// a dynamic-DNS name follows the home connection's address as it changes.
+    static IPAddress? PublicAddress()
+    {
+        if (_publicAddress.Length == 0) return null;
+        if (IPAddress.TryParse(_publicAddress, out var ip))
+            return Plain(ip) is { AddressFamily: AddressFamily.InterNetwork } v4 ? v4 : null;
+        if (_publicLookup.Ip != null && DateTime.UtcNow - _publicLookup.At < TimeSpan.FromMinutes(1))
+            return _publicLookup.Ip;
+        try
+        {
+            ip = Dns.GetHostAddresses(_publicAddress)
+                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+        }
+        catch { ip = null; }
+        if (ip != null) _publicLookup = (ip, DateTime.UtcNow);
+        else _log($"  WARNING  public-address \"{_publicAddress}\" does not resolve to an IPv4 address");
+        return ip ?? _publicLookup.Ip;
     }
 
     /// The client calls this as GetPublicKeyForGameServer(IPEndPoint, ...) before joining;
@@ -770,10 +835,12 @@ public static class MasterServerHost
 
     /// Field order follows the entry class's offsets (TypeDefIndex 7354); enums sit on
     /// 4-byte boundaries there, so they are written as int32.
-    static void WriteServerEntry(BinaryWriter w, GameServerInfo s)
+    static void WriteServerEntry(BinaryWriter w, GameServerInfo s, IPAddress here)
     {
-        var ip = s.Address is { } a && !a.IsIPv4MappedToIPv6 ? a : IPAddress.Loopback;
-        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        // A server that registered from this machine is wherever this player reaches
+        // the machine (see HereFor); one on another machine is at the address it came from.
+        var ip = Plain(s.Address) ?? IPAddress.Loopback;
+        if (IPAddress.IsLoopback(ip) || ip.AddressFamily != AddressFamily.InterNetwork) ip = here;
 
         // Probe mode labels every field so a screenshot of the browser row shows which
         // slot each one actually feeds.

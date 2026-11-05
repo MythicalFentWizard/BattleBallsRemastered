@@ -231,6 +231,10 @@ public sealed class ServerProperties
         cluster-password=
         # Require players to log in with an account before they can get a token.
         require-accounts=true
+        # Where players over the internet are sent to join a game server running on
+        # this machine: your public IP or a DNS name. Leave blank on a LAN - players
+        # there are sent to whatever address they reached the master on.
+        public-address=
 
         # ---------- Game server ----------
         # BattleBit ships no Linux dedicated server, so on Linux this box runs the
