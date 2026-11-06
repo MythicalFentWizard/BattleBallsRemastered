@@ -217,8 +217,14 @@ public static class MasterServerHost
     {
         var rows = Servers.Values.Select(s => new
         {
-            s.EndPoint, s.ServerName, s.MapName, s.GameMode,
-            s.Port, s.CurrentPlayers, s.MaxPlayers, s.Version,
+            s.EndPoint,
+            s.ServerName,
+            s.MapName,
+            s.GameMode,
+            s.Port,
+            s.CurrentPlayers,
+            s.MaxPlayers,
+            s.Version,
             UptimeSeconds = (int)(DateTime.UtcNow - s.ConnectedAt).TotalSeconds,
         });
         // A SteamID64 resolves straight to a Steam profile, so the roster only carries
@@ -373,7 +379,10 @@ public static class MasterServerHost
         _log($"ban import: {applied} applied, {pending} pending review, {skipped} skipped");
         await ctx.Response.WriteAsJsonAsync(new
         {
-            ok = true, applied, pending, skipped,
+            ok = true,
+            applied,
+            pending,
+            skipped,
             pendingFile = pending > 0 ? Bans.PendingPath : null,
         });
     }
@@ -1040,8 +1049,16 @@ public static class MasterServerHost
 
             if (LogPackets)
             {
-                _log($"REGISTRY {ep} packet type=0x{data[0]:X2} len={len}");
-                if (len <= 192) _log($"  hex: {Hex(data, 192)}");
+                byte packetType = data.Length >= 9 ? data[8] : data[0];
+
+                _log($"REGISTRY {ep} packet type=0x{packetType:X2} len={len}");
+
+                if (len <= 192 ||
+                    packetType == (byte)MasterPacket.SaveStatsAndLeavePlayerFromServer ||
+                    packetType == (byte)MasterPacket.SaveStatsAndLeavePlayerFromServerBatched)
+                {
+                    _log($"  hex: {Hex(data, 4096)}");
+                }
             }
 
             await Dispatch(stream, info, ep, data);
@@ -1130,19 +1147,19 @@ public static class MasterServerHost
             // The server sits in WaitingStatsFromMasterServer and drops the joining
             // player after 6000ms if this goes unanswered.
             case MasterPacket.GetPlayerStats when payload.Length >= 8:
-            {
-                var steamId = BinaryPrimitives.ReadUInt64LittleEndian(payload);
-                var account = AccountFor(steamId);
-                var who = account?.Name ?? DisplayName(steamId);
-                var progress = account?.Progress ?? _accounts.Progression.NewPlayerProgress();
-                var reply = BuildStatsReply(sequence, steamId, who, progress,
-                                            account?.IsBanned ?? false);
-                await SendPacket(stream, reply);
-                _log($"  seq {sequence} GetPlayerStats {steamId} -> stats as \"{who}\" " +
-                     $"({reply.Length}b, {progress.Params.Length} progress params" +
-                     $"{(account is null ? ", no account yet" : "")})");
-                break;
-            }
+                {
+                    var steamId = BinaryPrimitives.ReadUInt64LittleEndian(payload);
+                    var account = AccountFor(steamId);
+                    var who = account?.Name ?? DisplayName(steamId);
+                    var progress = account?.Progress ?? _accounts.Progression.NewPlayerProgress();
+                    var reply = BuildStatsReply(sequence, steamId, who, progress,
+                                                account?.IsBanned ?? false);
+                    await SendPacket(stream, reply);
+                    _log($"  seq {sequence} GetPlayerStats {steamId} -> stats as \"{who}\" " +
+                         $"({reply.Length}b, {progress.Params.Length} progress params" +
+                         $"{(account is null ? ", no account yet" : "")})");
+                    break;
+                }
 
             // Progress coming back when a player leaves is NOT the layout we send.
             // A captured save payload is 325 bytes against our 278, it begins with a
@@ -1155,35 +1172,35 @@ public static class MasterServerHost
             // the way the reply does. Until that is done, the save is acknowledged and
             // discarded rather than parsed wrongly.
             case MasterPacket.SaveStatsAndLeavePlayerFromServer:
-            {
-                var record = PlayerStats.TryRead(new PacketReader(payload.ToArray()), out var sid);
-                var name = record is null ? null : PlayerAccounts.GetValueOrDefault(sid);
-
-                if (name is not null)
                 {
-                    _accounts.StoreProgress(name, record!);
-                    _log($"  seq {sequence} {type}: saved progress for \"{name}\" " +
-                         $"({record!.Params.Length} params)");
-                }
-                else if (LogSaveLayoutOnce)
-                {
-                    // Once, not on every retry: this is a 650-character line and the
-                    // game server repeats the packet until it is acknowledged.
-                    LogSaveLayoutOnce = false;
-                    _log($"  seq {sequence} {type}: cannot parse this layout yet, " +
-                         $"progress not saved ({payload.Length}b). Logged once:");
-                    _log($"    {Hex(payload.ToArray(), 4096)}");
-                }
+                    var record = PlayerStats.TryRead(new PacketReader(payload.ToArray()), out var sid);
+                    var name = record is null ? null : PlayerAccounts.GetValueOrDefault(sid);
 
-                // Acknowledge either way. Without a reply the game server treats the
-                // save as lost and resends it every five seconds for the rest of the
-                // round, which is what filled the console with identical dumps.
-                var ack = new PacketWriter();
-                ack.Write(sequence);
-                ack.Write((byte)type);
-                await SendPacket(stream, ack.ToArray());
-                break;
-            }
+                    if (name is not null)
+                    {
+                        _accounts.StoreProgress(name, record!);
+                        _log($"  seq {sequence} {type}: saved progress for \"{name}\" " +
+                             $"({record!.Params.Length} params)");
+                    }
+                    else if (LogSaveLayoutOnce)
+                    {
+                        // Once, not on every retry: this is a 650-character line and the
+                        // game server repeats the packet until it is acknowledged.
+                        LogSaveLayoutOnce = false;
+                        _log($"  seq {sequence} {type}: cannot parse this layout yet, " +
+                             $"progress not saved ({payload.Length}b). Logged once:");
+                        _log($"    {Hex(payload.ToArray(), 4096)}");
+                    }
+
+                    // Acknowledge either way. Without a reply the game server treats the
+                    // save as lost and resends it every five seconds for the rest of the
+                    // round, which is what filled the console with identical dumps.
+                    var ack = new PacketWriter();
+                    ack.Write(sequence);
+                    ack.Write((byte)type);
+                    await SendPacket(stream, ack.ToArray());
+                    break;
+                }
 
             default:
                 if (LogPackets)
